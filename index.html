@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>时光纪 |D9回忆录</title>
+    <!-- 图标库 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- PDF导出依赖 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        paper: '#f8f5f0',
+                        ink: '#2c3e50',
+                        accent: '#a67c52',
+                        soft: '#e8e4dc'
+                    },
+                    fontFamily: {
+                        serif: ['"Noto Serif SC"', 'SimSun', 'serif'],
+                        sans: ['"PingFang SC"', '"Microsoft YaHei"', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- 所有样式全部内嵌 -->
+    <style>
+        /* 纸张纹理背景 */
+        .paper-texture {
+            background-color: #f8f5f0;
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%239c8868' fill-opacity='0.03' fill-rule='evenodd'/%3E%3C/svg%3E");
+        }
+
+        .text-shadow-sm {
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+        }
+
+        /* 滚动渐入动画优化 */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.9s ease, transform 0.9s ease;
+            will-change: transform, opacity;
+        }
+
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* 首屏向下箭头：修复Safari卡顿 */
+        .bounce-slow {
+            animation: bounceSlow 1s ease-in-out infinite;
+        }
+
+        @keyframes bounceSlow {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        /* 时间轴图片悬停效果 */
+        .timeline-img {
+            transition: transform 0.5s ease, box-shadow 0.5s ease;
+        }
+
+        .timeline-img:hover {
+            transform: scale(1.02);
+            box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.2);
+        }
+
+        /* 时间轴日期：Futura字体 + 加深加粗 */
+        .timeline-date {
+            font-family: "Futura", "Century Gothic", "Trebuchet MS", sans-serif;
+            font-weight: 700;
+            font-size: 1.15rem;
+            color: #8b5a2b;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        @media (max-width: 767px) {
+            .timeline-date {
+                font-size: 1rem;
+            }
+        }
+
+        /* 移动端时间轴：左侧边框替代中轴线 */
+        @media (max-width: 767px) {
+            .timeline-item {
+                border-left: 3px solid rgba(166, 124, 82, 0.3);
+                padding-left: 1.5rem;
+                margin-left: 0.5rem;
+            }
+        }
+
+        /* 神秘人卡片悬停 */
+        .member-card {
+            transition: transform 0.4s ease, box-shadow 0.4s ease;
+            cursor: pointer;
+        }
+
+        .member-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 相册图片悬停 */
+        .gallery-item img {
+            transition: transform 0.5s ease;
+        }
+
+        .gallery-item:hover img {
+            transform: scale(1.05);
+        }
+
+        /* 粒子画布层级 */
+        #particleCanvas {
+            z-index: 15;
+        }
+
+        /* 明信片相关样式 */
+        .postcard-wrap {
+            position: relative;
+        }
+
+        .postcard-loading {
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.75);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.5rem;
+            z-index: 10;
+            font-size: 0.95rem;
+            color: #a67c52;
+        }
+
+        .postcard-loading.hidden {
+            display: none;
+        }
+
+        .side-tabs {
+            display: flex;
+            border: 1px solid rgba(166, 124, 82, 0.3);
+            border-radius: 9999px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .side-tab {
+            flex: 1;
+            padding: 0.5rem 1rem;
+            text-align: center;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: transparent;
+            border: none;
+            color: #2c3e50;
+        }
+
+        .side-tab.active {
+            background: #a67c52;
+            color: white;
+        }
+
+        /* 快捷短语标签 */
+        .phrase-tag {
+            padding: 0.25rem 0.75rem;
+            font-size: 0.8rem;
+            border: 1px solid rgba(166, 124, 82, 0.3);
+            border-radius: 9999px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .phrase-tag:hover {
+            background: rgba(166, 124, 82, 0.1);
+        }
+        /* ========== 神秘人区域字体：等线为主，多系统兜底 ========== */
+        /* 卡片标题+小字 */
+        .member-card h4 {
+           font-family: "DengXian", "PingFang SC", "Microsoft YaHei", sans-serif;
+           font-weight: 600;
+        }
+        .member-card p {
+            font-family: "DengXian", "PingFang SC", "Microsoft YaHei", sans-serif;
+        }
+
+        /* 弹窗标题 */
+#modalName {
+    font-family: "DengXian", "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-weight: 600;
+}
+
+/* 弹窗语录 */
+#modalSign {
+    font-family: "DengXian", "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-style: italic; /* 去掉默认斜体，想要斜体就改成 italic */
+}
+/* 明信片基础显示样式 */
+.postcard-show {
+    width: 100%;
+    aspect-ratio: 600 / 400;
+    position: relative;
+    box-sizing: border-box;
+}
+.front-mask {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 70px;
+    background: linear-gradient(to top, rgba(0,0,0,0.5), transparent);
+    pointer-events: none;
+}
+.front-text {
+    position: absolute;
+    bottom: 30px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    color: #fff;
+    font-size: 22px;
+    font-family: "Noto Serif SC", SimSun, serif;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    pointer-events: none;
+}
+.class-name {
+    position: absolute;
+    bottom: -18px;
+    left: 25px;
+    font-size: 11px;
+    color: rgba(255,255,255,0.8);
+    text-shadow: none;
+}
+.postmark {
+    position: absolute;
+    right: 65px;
+    bottom: 65px;
+    width: 90px;
+    height: 90px;
+    border: 2px solid rgba(139, 69, 19, 0.7);
+    border-radius: 50%;
+    transform: rotate(-15deg);
+}
+.postmark::before {
+    content: "2026.07.05";
+    position: absolute;
+    top: 30px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 14px;
+    font-weight: bold;
+    color: rgba(139, 69, 19, 0.7);
+}
+.postmark::after {
+    content: "D9";
+    position: absolute;
+    top: 50px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 10px;
+    color: rgba(139, 69, 19, 0.7);
+}
+
+/* 背面布局 */
+.back-layout {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    padding: 20px;
+    box-sizing: border-box;
+    position: relative;
+}
+.back-layout::after {
+    content: "";
+    position: absolute;
+    top: 20px;
+    bottom: 20px;
+    left: 58%;
+    width: 1px;
+    background: #333;
+}
+.back-lines {
+    width: 58%;
+    padding-right: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 30px;
+    padding-top: 30px;
+}
+.line {
+    width: 100%;
+    height: 1px;
+    background: #ccc;
+}
+.back-form {
+    width: 42%;
+    padding-left: 30px;
+    position: relative;
+}
+.stamp {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 60px;
+    height: 70px;
+    border: 1.5px dashed #c00;
+    color: #c00;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.code-area {
+    margin-top: 105px;
+}
+.code-title {
+    font-size: 12px;
+    color: #333;
+    display: block;
+    margin-bottom: 8px;
+}
+.code-box {
+    display: flex;
+    gap: 6px;
+}
+.code-item {
+    width: 22px;
+    height: 22px;
+    border: 1px solid #333;
+}
+.addr-area {
+    margin-top: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+}
+.addr-line {
+    width: 100%;
+    height: 1px;
+    background: #333;
+    position: relative;
+}
+.addr-line span {
+    position: absolute;
+    top: -10px;
+    left: 0;
+    font-size: 12px;
+    color: #666;
+    background: #fff;
+    padding-right: 4px;
+}
+/* ========== 烟花特效 ========== */
+.firework-dot {
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+}
+/* 上升的烟花弹 */
+.firework-shell {
+    position: fixed;
+    width: 8px;
+    height: 8px;
+    background: #ffd700;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    box-shadow: 0 0 15px 5px #ffd700;
+}
+
+/* ========== 彩带特效 ========== */
+.confetti-piece {
+    position: fixed;
+    width: 5px;
+    height: 18px;
+    pointer-events: none;
+    z-index: 9999;
+    border-radius: 2px;
+}
+/* ========== 音乐播放器布局与样式 ========== */
+.music-player {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* 按钮基础样式：暂停状态 */
+.music-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255, 255, 255, 0.35);
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(4px);
+}
+.music-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* 按钮播放状态：暖金色背景 + 呼吸发光动画 */
+.music-btn.playing {
+    background: #b8860b;
+    border-color: #b8860b;
+    color: #fff;
+    animation: music-breathe 2s ease-in-out infinite;
+}
+@keyframes music-breathe {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(184, 134, 11, 0.5);
+    }
+    50% {
+        box-shadow: 0 0 0 10px rgba(184, 134, 11, 0);
+    }
+}
+
+/* 歌曲名称文字 */
+.music-text {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 13px;
+    white-space: nowrap;
+    line-height: 1;
+}
+    </style>
+</head>
+
+<body class="bg-paper paper-texture text-ink font-sans">
+
+    <!-- 滚动进度条 -->
+    <div id="progressBar" class="fixed top-0 left-0 h-0.5 bg-accent z-[60] w-0 transition-all duration-150"></div>
+
+    <!-- 导航栏 -->
+    <nav id="navbar" class="fixed top-0 left-0 w-full z-50 transition-all duration-500 bg-transparent">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="#home" class="text-xl font-serif font-bold text-white text-shadow-sm">时光纪</a>
+            <div class="hidden md:flex space-x-8 text-white text-shadow-sm">
+                <a href="#timeline" class="hover:text-accent transition-colors">时光轴</a>
+                <a href="#members" class="hover:text-accent transition-colors">神秘语录</a>
+                <a href="#gallery" class="hover:text-accent transition-colors">相册</a>
+                <a href="#postcard" class="hover:text-accent transition-colors">明信片</a>
+            </div>
+            <button id="menuBtn" class="md:hidden text-white text-2xl">
+                <i class="fa fa-bars"></i>
+            </button>
+        </div>
+
+        <!-- 移动端菜单 -->
+        <div id="mobileMenu" class="md:hidden hidden bg-paper/95 backdrop-blur-sm shadow-lg">
+            <div class="flex flex-col px-6 py-4 space-y-4">
+                <a href="#timeline" class="py-2 border-b border-soft">时光轴</a>
+                <a href="#members" class="py-2 border-b border-soft">神秘语录</a>
+                <a href="#gallery" class="py-2 border-b border-soft">相册</a>
+                <a href="#postcard" class="py-2">明信片</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 首屏 -->
+    <section id="home" class="relative h-screen flex items-center justify-center overflow-hidden">
+        <canvas id="particleCanvas" class="absolute inset-0 z-15 pointer-events-none"></canvas>
+        <div class="absolute inset-0 bg-black/45 z-10"></div>
+        <img src="https://picsum.photos/id/1024/1920/1080" alt="班级合照"
+            class="absolute inset-0 w-full h-full object-cover">
+        <div class="relative z-20 text-center text-white px-6">
+            <p class="text-sm tracking-[0.3em] mb-4 opacity-80 text-shadow-sm">CLASS MEMORY · 2025 — 2026</p>
+            <h1 class="text-[clamp(2.2rem,7vw,4.5rem)] font-serif font-bold mb-6 text-shadow-sm">时光纪</h1>
+            <p id="randomQuote"
+                class="text-[clamp(1rem,2vw,1.3rem)] max-w-xl mx-auto opacity-90 text-shadow-sm font-serif italic">
+                山水万程，皆有好运。
+            </p>
+            <div class="mt-20 bounce-slow opacity-80">
+                <i class="fa fa-angle-down text-2xl"></i>
+            </div>
+        </div>
+    </section>
+
+    <!-- 开篇 -->
+    <section class="py-24 px-6">
+        <div class="max-w-2xl mx-auto text-center fade-in">
+            <p class="font-serif text-lg leading-relaxed opacity-80">
+                从初秋的初见，到盛夏的道别。<br>
+                这一年的故事不长，却足够我们记很久。<br>
+                顺着时间往回走，再重温一遍我们的日子。
+            </p>
+        </div>
+    </section>
+
+    <!-- 图文时间轴 -->
+    <section id="timeline" class="py-12 px-6">
+        <div class="max-w-5xl mx-auto relative">
+            <!-- 桌面端中轴线 -->
+            <div class="absolute left-1/2 -translate-x-1/2 h-full w-px bg-accent/25 hidden md:block"></div>
+
+            <!-- 节点1：军训 -->
+            <div class="relative mb-24 fade-in md:flex items-center timeline-item">
+                <div class="md:w-1/2 md:pr-12 mb-6 md:mb-0 pl-0 md:pl-0">
+                    <div class="rounded-lg overflow-hidden shadow-md cursor-pointer timeline-img"
+                        onclick="openLightbox(this.querySelector('img').src)">
+                        <img src="photos/军训合照1.jpeg" alt="军训" class="w-full h-auto" >
+                    </div>
+                </div>
+                <div class="md:w-1/2 md:pl-12 pl-6 relative">
+                    <div
+                        class="absolute left-0 md:left-0 top-2 w-3 h-3 rounded-full bg-accent -translate-x-1/2 hidden md:block">
+                    </div>
+                    <p class="timeline-date">2025.08.21 — 27</p>
+                    <h3 class="text-2xl font-bold mb-4">军训</h3>
+                    <p class="opacity-80 leading-relaxed">
+                        八月的太阳最毒，我们站在操场上晒得黝黑。拉歌的喊声、踢正步的脚步声、晚训的晚风，是我们认识彼此的第一堂课。
+                    </p>
+                </div>
+            </div>
+
+            <!-- 节点2：入学门 -->
+            <div class="relative mb-24 fade-in md:flex items-center flex-row-reverse timeline-item">
+                <div class="md:w-1/2 md:pl-12 mb-6 md:mb-0 pl-0 md:pl-0">
+                    <div class="rounded-lg overflow-hidden shadow-md cursor-pointer timeline-img"
+                        onclick="openLightbox(this.querySelector('img').src)">
+                        <img src="photos/开学典礼.jpeg" alt="入学门" class="w-full h-auto" >
+                    </div>
+                </div>
+                <div class="md:w-1/2 md:pr-12 pl-6 md:pl-0 relative">
+                    <div
+                        class="absolute left-0 md:left-auto md:right-0 top-2 w-3 h-3 rounded-full bg-accent translate-x-1/2 hidden md:block">
+                    </div>
+                    <p class="timeline-date">2025.08.31</p>
+                    <h3 class="text-2xl font-bold mb-4">入学门</h3>
+                    <p class="opacity-80 leading-relaxed">
+                        穿过拱门的那一刻，我们正式成为了这个班的一员。墙上贴着新的名单，桌上摆着新的课本，一切都刚刚开始。
+                    </p>
+                </div>
+            </div>
+
+            <!-- 节点3：台风假 -->
+            <div class="relative mb-24 fade-in md:flex items-center timeline-item">
+                <div class="md:w-1/2 md:pr-12 mb-6 md:mb-0 pl-0 md:pl-0">
+                    <div class="rounded-lg overflow-hidden shadow-md cursor-pointer timeline-img"
+                        onclick="openLightbox(this.querySelector('img').src)">
+                        <img src="https://picsum.photos/id/1019/800/600" alt="台风假" class="w-full h-auto">
+                    </div>
+                </div>
+                <div class="md:w-1/2 md:pl-12 pl-6 relative">
+                    <div
+                        class="absolute left-0 md:left-0 top-2 w-3 h-3 rounded-full bg-accent -translate-x-1/2 hidden md:block">
+                    </div>
+                    <p class="timeline-date">2025.09.23 — 25</p>
+                    <h3 class="text-2xl font-bold mb-4">台风假</h3>
+                    <p class="opacity-80 leading-relaxed">
+                        突如其来的停课通知让全班沸腾。窗外风雨大作，群里消息刷个不停。那三天很短，却成了开学后最意外的快乐。
+                    </p>
+                </div>
+            </div>
+
+            <!-- 节点4：校运会 -->
+            <div class="relative mb-24 fade-in md:flex items-center flex-row-reverse timeline-item">
+                <div class="md:w-1/2 md:pl-12 mb-6 md:mb-0 pl-0 md:pl-0">
+                    <div class="rounded-lg overflow-hidden shadow-md cursor-pointer timeline-img"
+                        onclick="openLightbox(this.querySelector('img').src)">
+                        <img src="photos/生日会3.jpeg" alt="寒假开始" class="w-full h-auto">
+                    </div>
+                </div>
+                <div class="md:w-1/2 md:pr-12 pl-6 md:pl-0 relative">
+                    <div
+                        class="absolute left-0 md:left-auto md:right-0 top-2 w-3 h-3 rounded-full bg-accent translate-x-1/2 hidden md:block">
+                    </div>
+                    <p class="timeline-date">2025.10.30 — 31</p>
+                    <h3 class="text-2xl font-bold mb-4">校运会</h3>
+                    <p class="opacity-80 leading-relaxed">
+                        跑道上的人拼尽全力，看台上的人喊到沙哑。大本营的帐篷下堆满零食和加油稿，那是我们第一次为同一个名次如此团结。
+                    </p>
+                </div>
+            </div>
+
+            <!-- 节点5：合唱比赛 -->
+            <div class="relative mb-24 fade-in md:flex items-center timeline-item">
+                <div class="md:w-1/2 md:pr-12 mb-6 md:mb-0 pl-0 md:pl-0">
+                    <div class="rounded-lg overflow-hidden shadow-md cursor-pointer timeline-img"
+                        onclick="openLightbox(this.querySelector('img').src)">
+                        <img src="photos/合唱1.jpeg" alt="合唱比赛" class="w-full h-auto">
+                    </div>
+                </div>
+                <div class="md:w-1/2 md:pl-12 pl-6 relative">
+                    <div
+                        class="absolute left-0 md:left-0 top-2 w-3 h-3 rounded-full bg-accent -translate-x-1/2 hidden md:block">
+                    </div>
+                    <p class="timeline-date">2025.12.17</p>
+                    <h3 class="text-2xl font-bold mb-4">合唱比赛</h3>
+                    <p class="opacity-80 leading-relaxed">
+                        放学后的教室一遍遍回荡着歌声，有人跑调有人忘词。站上舞台的那一刻，灯光亮起来，我们唱得比任何一次排练都整齐。
+                    </p>
+                </div>
+            </div>
+
+            <!-- 节点6：寒假开始 -->
+            <div class="relative mb-24 fade-in md:flex items-center flex-row-reverse timeline-item">
+                <div class="md:w-1/2 md:pl-12 mb-6 md:mb-0 pl-0 md:pl-0">
+                    <div class="rounded-lg overflow-hidden shadow-md cursor-pointer timeline-img"
+                        onclick="openLightbox(this.querySelector('img').src)">
+                        <img src="https://picsum.photos/id/1059/800/600" alt="寒假开始" class="w-full h-auto"
+                            loading="lazy">
+                    </div>
+                </div>
+                <div class="md:w-1/2 md:pr-12 pl-6 md:pl-0 relative">
+                    <div
+                        class="absolute left-0 md:left-auto md:right-0 top-2 w-3 h-3 rounded-full bg-accent translate-x-1/2 hidden md:block">
+                    </div>
+                    <p class="timeline-date">2026.02.06</p>
+                    <h3 class="text-2xl font-bold mb-4">寒假开始</h3>
+                    <p class="opacity-80 leading-relaxed">
+                        散学典礼结束的瞬间，书包甩上肩膀，所有人都在奔向校门。冬天的风很冷，但心里装满了假期的期待和过年的热闹。
+                    </p>
+                </div>
+            </div>
+
+            <!-- 节点7：回校 -->
+            <div class="relative mb-24 fade-in md:flex items-center timeline-item">
+                <div class="md:w-1/2 md:pr-12 mb-6 md:mb-0 pl-0 md:pl-0">
+                    <div class="rounded-lg overflow-hidden shadow-md cursor-pointer timeline-img"
+                        onclick="openLightbox(this.querySelector('img').src)">
+                        <img src="photos/课前演讲.jpeg" alt="开学回校" class="w-full h-auto">
+                    </div>
+                </div>
+                <div class="md:w-1/2 md:pl-12 pl-6 relative">
+                    <div
+                        class="absolute left-0 md:left-0 top-2 w-3 h-3 rounded-full bg-accent -translate-x-1/2 hidden md:block">
+                    </div>
+                    <p class="timeline-date">2026.03.01</p>
+                    <h3 class="text-2xl font-bold mb-4">开学回校</h3>
+                    <p class="opacity-80 leading-relaxed">
+                        带着没写完的作业和过年的趣事回到教室。同桌分享着老家的零食，前后桌聊着假期的见闻，好像我们从未分开过。
+                    </p>
+                </div>
+            </div>
+
+            <!-- 节点8：南科大研学 -->
+            <div class="relative mb-24 fade-in md:flex items-center flex-row-reverse timeline-item">
+                <div class="md:w-1/2 md:pl-12 mb-6 md:mb-0 pl-0 md:pl-0">
+                    <div class="rounded-lg overflow-hidden shadow-md cursor-pointer timeline-img"
+                        onclick="openLightbox(this.querySelector('img').src)">
+                        <img src="photos/南科大合影.jpeg" alt="南科大研学" class="w-full h-auto">>
+                    </div>
+                </div>
+                <div class="md:w-1/2 md:pr-12 pl-6 md:pl-0 relative">
+                    <div
+                        class="absolute left-0 md:left-auto md:right-0 top-2 w-3 h-3 rounded-full bg-accent translate-x-1/2 hidden md:block">
+                    </div>
+                    <p class="timeline-date">2026.05.16</p>
+                    <h3 class="text-2xl font-bold mb-4">南科大研学</h3>
+                    <p class="opacity-80 leading-relaxed">
+                        走进大学校园，逛实验室、听讲座、在草坪上拍照。那天我们聊着未来的大学，好像长大也不是很远的事。
+                    </p>
+                </div>
+            </div>
+
+            <!-- 节点9：学农 -->
+            <div class="relative fade-in md:flex items-center timeline-item">
+                <div class="md:w-1/2 md:pr-12 mb-6 md:mb-0 pl-0 md:pl-0">
+                    <div class="rounded-lg overflow-hidden shadow-md cursor-pointer timeline-img"
+                        onclick="openLightbox(this.querySelector('img').src)">
+                        <img src="photos/学农劳动.jpeg" alt="学农实践" class="w-full h-auto">
+                    </div>
+                </div>
+                <div class="md:w-1/2 md:pl-12 pl-6 relative">
+                    <div
+                        class="absolute left-0 md:left-0 top-2 w-3 h-3 rounded-full bg-accent -translate-x-1/2 hidden md:block">
+                    </div>
+                    <p class="timeline-date">2026.06.15 — 18</p>
+                    <h3 class="text-2xl font-bold mb-4">学农实践</h3>
+                    <p class="opacity-80 leading-relaxed">
+                        下地、生火做饭、晚上围坐在一起聊天。汗水浸透校服，却是我们最无忧无虑的四天三夜。
+                    </p>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- 神秘人士语录 -->
+    <section id="members" class="py-24 px-6 bg-soft/30">
+        <div class="max-w-6xl mx-auto">
+            <h2 class="text-3xl font-serif text-center mb-4 fade-in">神秘人士语录</h2>
+            <p class="text-center opacity-70 mb-16 fade-in">点击卡片解锁专属语录</p>
+            <div id="memberGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                <!-- 卡片由 JS 动态渲染 -->
+            </div>
+        </div>
+    </section>
+
+    <!-- 神秘语录弹窗 -->
+    <div id="memberModal" class="fixed inset-0 bg-black/60 z-50 hidden items-center justify-center p-6">
+        <div class="bg-paper rounded-lg max-w-md w-full p-8 relative">
+            <button id="closeMemberModal" class="absolute top-4 right-4 text-xl opacity-60 hover:opacity-100">
+                <i class="fa fa-times"></i>
+            </button>
+            <h3 id="modalName" class="text-2xl font-serif text-center mb-6"></h3>
+            <p id="modalSign" class="text-center text-lg italic opacity-80 font-serif"></p>
+        </div>
+    </div>
+
+    <!-- 时光相册 -->
+    <section id="gallery" class="py-24 px-6">
+        <div class="max-w-6xl mx-auto">
+            <h2 class="text-3xl font-serif text-center mb-4 fade-in">时光相册</h2>
+            <p class="text-center opacity-70 mb-12 fade-in">那些被镜头定格的瞬间</p>
+
+                        <!-- 分类标签 -->
+                        <div class="flex flex-wrap justify-center gap-3 mb-12 fade-in">
+                            <button
+                                class="gallery-tab active px-5 py-2.5 rounded-full border border-accent/30 bg-accent text-white transition-all text-sm"
+                                data-category="all">全部</button>
+                            <button
+                                class="gallery-tab px-5 py-2.5 rounded-full border border-accent/30 hover:bg-accent/10 transition-all text-sm"
+                                data-category="junxun">军训</button>
+                            <button
+                                class="gallery-tab px-5 py-2.5 rounded-full border border-accent/30 hover:bg-accent/10 transition-all text-sm"
+                                data-category="rumen">入学门</button>
+                            <button
+                                class="gallery-tab px-5 py-2.5 rounded-full border border-accent/30 hover:bg-accent/10 transition-all text-sm"
+                                data-category="richang">日常点滴</button>
+                            <button
+                                class="gallery-tab px-5 py-2.5 rounded-full border border-accent/30 hover:bg-accent/10 transition-all text-sm"
+                                data-category="shengri">生日会</button>
+                            <button
+                                class="gallery-tab px-5 py-2.5 rounded-full border border-accent/30 hover:bg-accent/10 transition-all text-sm"
+                                data-category="hechang">合唱比赛</button>
+                            <button
+                                class="gallery-tab px-5 py-2.5 rounded-full border border-accent/30 hover:bg-accent/10 transition-all text-sm"
+                                data-category="zuqiu">足球赛事</button>
+                            <button
+                                class="gallery-tab px-5 py-2.5 rounded-full border border-accent/30 hover:bg-accent/10 transition-all text-sm"
+                                data-category="yanxue">南科大研学</button>
+                            <button
+                                class="gallery-tab px-5 py-2.5 rounded-full border border-accent/30 hover:bg-accent/10 transition-all text-sm"
+                                data-category="xuenong">学农</button>
+                            <button
+                                class="gallery-tab px-5 py-2.5 rounded-full border border-accent/30 hover:bg-accent/10 transition-all text-sm"
+                                data-category="liuyi">六一快乐</button>
+                        </div>
+
+            <div id="galleryGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-12">
+                <!-- 图片由 JS 动态渲染 -->
+            </div>
+
+            <div class="text-center fade-in">
+                <button id="openCarousel"
+                    class="px-8 py-3 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors shadow-md">
+                    <i class="fa fa-play-circle mr-2"></i>开启全屏回忆轮播
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- 相册灯箱 -->
+    <div id="lightbox" class="fixed inset-0 bg-black/90 z-50 hidden items-center justify-center p-6">
+        <button id="closeLightbox" class="absolute top-6 right-6 text-white text-2xl">
+            <i class="fa fa-times"></i>
+        </button>
+        <img id="lightboxImg" src="" alt="大图" class="max-w-full max-h-full object-contain rounded">
+    </div>
+
+    <!-- 全屏轮播弹窗 -->
+    <!-- 全屏轮播弹窗 -->
+    <div id="carouselModal" class="fixed inset-0 bg-black/95 z-50 hidden items-center justify-center">
+        <button id="toggleMusic"
+            class="absolute top-6 left-6 text-white text-xl z-10 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
+            <i class="fa fa-music"></i>
+        </button>
+        <button id="closeCarousel"
+            class="absolute top-6 right-6 text-white text-2xl z-10 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
+            <i class="fa fa-times"></i>
+        </button>
+        <button id="prevSlide"
+            class="absolute left-6 top-1/2 -translate-y-1/2 text-white text-3xl z-10 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
+            <i class="fa fa-angle-left"></i>
+        </button>
+        <button id="nextSlide"
+            class="absolute right-6 top-1/2 -translate-y-1/2 text-white text-3xl z-10 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
+            <i class="fa fa-angle-right"></i>
+        </button>
+        <img id="carouselImg" src="" alt="轮播图" class="max-w-[90vw] max-h-[85vh] object-contain">
+        <div id="carouselDots" class="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+            <!-- 轮播圆点由 JS 动态生成 -->
+        </div>
+        <!-- 背景音乐 -->
+        <!-- 背景音乐播放器 -->
+        <div class="music-player">
+            <button id="musicToggle" class="music-btn">
+                <i class="fa fa-music"></i>
+            </button>
+            <audio id="bgMusic" preload="auto">
+        </div>
+    </div>
+    <!-- 明信片工作台 -->
+    <!-- 明信片工作台 -->
+    <section id="postcard" class="py-24 px-6 bg-soft/30">
+        <div class="max-w-5xl mx-auto">
+            <h2 class="text-3xl font-serif text-center mb-4 fade-in">记忆明信片</h2>
+            <p class="text-center opacity-70 mb-12 fade-in">选一张照片，写下一句话，生成专属纪念明信片</p>
+    
+            <div class="grid md:grid-cols-2 gap-8 items-start">
+                <!-- 左侧控制面板 -->
+                <div class="bg-white/70 rounded-lg p-6 shadow-sm fade-in">
+                    <!-- 正反面切换 -->
+                    <div class="flex rounded-full overflow-hidden border border-accent/30 mb-5">
+                        <button class="side-tab active flex-1 py-2.5 text-sm" data-side="front">正面</button>
+                        <button class="side-tab flex-1 py-2.5 text-sm" data-side="back">背面</button>
+                    </div>
+    
+                    <div class="mb-4">
+                        <label class="block mb-2 text-sm font-medium">选择背景照片</label>
+                        <select id="postcardImg"
+                            class="w-full px-4 py-2 border border-soft rounded bg-paper/50 focus:outline-none focus:border-accent">
+                        </select>
+                    </div>
+    
+                    <div class="mb-4">
+                        <label class="block mb-2 text-sm font-medium">明信片文案</label>
+                        <textarea id="postcardText" rows="3" placeholder="写下你想留的话..."
+                            class="w-full px-4 py-2 border border-soft rounded bg-paper/50 focus:outline-none resize-none"></textarea>
+                    </div>
+    
+                    <div class="mb-5">
+                        <label class="block mb-2 text-sm font-medium">班级黑话快捷插入</label>
+                        <div id="quickPhrases" class="flex flex-wrap gap-2">
+                        </div>
+                    </div>
+    
+                    <button id="generatePostcard"
+                        class="w-full py-3 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors mb-3 font-medium">
+                        生成明信片
+                    </button>
+    
+                    <div class="grid grid-cols-2 gap-3">
+                        <button id="downloadPng"
+                            class="py-2.5 border border-accent text-accent rounded-lg hover:bg-accent/10 transition-colors text-sm">
+                            <i class="fa fa-image mr-1"></i>放烟花
+                        </button>
+                        <button id="downloadPdf"
+                            class="py-2.5 border border-accent text-accent rounded-lg hover:bg-accent/10 transition-colors text-sm">
+                            <i class="fa fa-file-pdf-o mr-1"></i>彩带！
+                        </button>
+                    </div>
+                </div>
+    
+                <!-- 右侧预览区（纯DOM稳定显示，打开就正常） -->
+                <div class="fade-in">
+                    <div class="bg-white rounded-lg shadow-lg p-3">
+                        <!-- 正面预览 -->
+                        <div id="postcardFront" class="postcard-show rounded overflow-hidden">
+                            <img id="frontImg" src="./photos/军训合照1.jpeg" alt="明信片正面" class="w-full h-full object-cover">
+                            <div class="front-mask"></div>
+                            <div class="front-text">
+                                <p id="frontText">山水万程，皆有好运</p>
+                                <div class="postmark"></div>
+                                <span class="class-name">D9纪念</span>
+                            </div>
+                        </div>
+                        <!-- 背面预览 -->
+                        <div id="postcardBack" class="postcard-show rounded bg-white hidden">
+                            <div class="back-layout">
+                                <div class="back-lines">
+                                    <div class="line"></div>
+                                    <div class="line"></div>
+                                    <div class="line"></div>
+                                    <div class="line"></div>
+                                    <div class="line"></div>
+                                    <div class="line"></div>
+                                    <div class="line"></div>
+                                    <div class="line"></div>
+                                    <div class="line"></div>
+                                </div>
+                                <div class="back-form">
+                                    <div class="stamp">贴邮票处</div>
+                                    <div class="code-area">
+                                        <span class="code-title">邮政编码</span>
+                                        <div class="code-box">
+                                            <span class="code-item"></span>
+                                            <span class="code-item"></span>
+                                            <span class="code-item"></span>
+                                            <span class="code-item"></span>
+                                            <span class="code-item"></span>
+                                            <span class="code-item"></span>
+                                        </div>
+                                    </div>
+                                    <div class="addr-area">
+                                        <div class="addr-line"><span>收信人地址</span></div>
+                                        <div class="addr-line"><span>收信人姓名</span></div>
+                                        <div class="addr-line"><span>寄信人地址</span></div>
+                                        <div class="addr-line"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-center text-xs opacity-50 mt-3">* 标准3:2明信片比例 · 分班日期邮戳自动生成</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 页脚 -->
+    <footer class="py-10 px-6 bg-ink text-white/60 text-center text-sm">
+        <p class="font-serif text-base mb-2">D9班 · 时光纪</p>
+        <p class="opacity-50">2025 — 2026 · 山水万程，皆有好运</p>
+    </footer>
+
+    <!-- JS 模块按顺序加载 -->
+    <script src="js/data.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/music.js"></script>
+    <script src="js/members.js"></script>
+    <script src="js/gallery.js"></script>
+    <script src="js/particles.js"></script>
+    <!-- 导出依赖库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="js/postcard.js"></script>
+</body>
+</html>
