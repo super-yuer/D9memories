@@ -59,9 +59,9 @@ const galleryList = [
     // 日常点滴
     { src: "https://cdn.jsdelivr.net/gh/super-yuer/D9memories@main/photos/daily-group.jpeg", category: "richang", alt: "班级日常合影" },
     { src: "https://cdn.jsdelivr.net/gh/super-yuer/D9memories@main/photos/speech.jpeg", category: "richang", alt: "课前分享" },
-    { src: "https://cdn.jsdelivr.net/gh/super-yuer/D9memories@main/photos/share3.jpeg", category: "richang", alt: "学习经验分享" },
+    { src: "https://cdn.jsdelivr.net/gh/super-yuer/D9memories@main/photos/share.jpeg", category: "richang", alt: "学习经验分享" },
     { src: "https://cdn.jsdelivr.net/gh/super-yuer/D9memories@main/photos/study-share.jpeg", category: "richang", alt: "学习交流" },
-    { src: "https://cdn.jsdelivr.net/gh/super-yuer/D9memories@main/photos/pingpong.jpeg", category: "richang", alt: "乒乓球比赛" },
+    { src: "https://cdn.jsdelivr.net/gh/super-yuer/D9memories@main/photos/table_tennis.jpeg", category: "richang", alt: "乒乓球比赛" },
     // 生日会
     { src: "https://cdn.jsdelivr.net/gh/super-yuer/D9memories@main/photos/birthday1.jpeg", category: "shengri", alt: "集体生日会" },
     { src: "https://cdn.jsdelivr.net/gh/super-yuer/D9memories@main/photos/birthday2.jpeg", category: "shengri", alt: "生日庆祝" },
